@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Laboratorio 5 - Mensajes del sistemas</title>
+    </head>
+    <body>
+        
+        <!-- Nombre del Chat --> 
+        <h2 style="margin: 20px auto;"> Chat con Usuarios Conectados</h2> 
+
+        <!-- Área de login --> 
+        <div id="login" style="margin: 20px auto;"> 
+            <input id="nickname" placeholder="Tu nick" /> 
+            <button id="start">Entrar al chat</button>             
+        </div> 
+        
+        <!-- Area del chat, inicialmente se oculta --> 
+        <div id="chat" style="display: none;"> 
+            
+            <div id="usuarios"> 
+                <h3>Usuarios conectados:</h3> 
+                <ul id="lista-usuarios"></ul> 
+            </div> 
+
+            <!-- Lista donde se mostraran los mensajes --> 
+            <ul id="messages"></ul> 
+
+            <form id="form"> 
+                <input id="input" autocomplete="off" placeholder="Escribe un mensaje..." /> 
+                <button type="submit">Enviar</button> 
+            </form> 
+        </div> 
+
+        <audio id="notify-sound" src="notificacion.mp3"></audio>
+
+
+        <script src="/socket.io/socket.io.js"></script> 
+        <script>
+            //Nos conectamos con el servidor por WebSocket
+            const socket = io(); 
+            let nick = ""; 
+
+            //Referencias a los elementos HTML
+            const loginDiv = document.getElementById('login'); 
+            const chatDiv = document.getElementById('chat'); 
+            const nicknameInput = document.getElementById('nickname'); 
+            const startButton = document.getElementById('start'); 
+
+            const form = document.getElementById('form'); 
+            const input = document.getElementById('input'); 
+            const messages = document.getElementById('messages'); 
+
+            const sonido = document.getElementById('notify-sound'); 
+
+            const listaUsuarios = document.getElementById('lista-usuarios'); 
+
+            startButton.addEventListener('click', () => { 
+                const value = nicknameInput.value.trim(); 
+                if (value) { 
+                    nick = value; 
+                    loginDiv.style.display = 'none'; 
+                    chatDiv.style.display = 'block'; 
+                    socket.emit('nuevo usuario', nick); 
+                } 
+            }); 
+
+            form.addEventListener('submit', function (e) { 
+                e.preventDefault(); 
+                if (input.value.trim() !== '') { 
+
+                    const msg = `${nick}: ${input.value}`; 
+                    //Enviar el mensaje al servidor con el nick al inicio
+                    socket.emit('chat message', msg); 
+                    input.value = ''; 
+                } 
+            }); 
+
+            //Cuando recibimos un mensaje de otro usuario (o propio)        
+            socket.on('chat message', function (msg) { 
+                const item = document.createElement('li'); 
+                item.textContent = msg; 
+                messages.appendChild(item);
+                sonido.play(); //Reproduce el sonido cada vez que llegue un mensaje
+                window.scrollTo(0, document.body.scrollHeight); 
+            }); 
+
+            socket.on('usuarios conectados', function (usuarios) { 
+                listaUsuarios.innerHTML = ''; 
+                usuarios.forEach((usuario) => { 
+                    const li = document.createElement('li'); 
+                    li.textContent = usuario; 
+                    listaUsuarios.appendChild(li); 
+                }); 
+            });
+
+            socket.on('mensaje sistema', function (msg) { 
+                const li = document.createElement('li'); 
+                li.textContent = msg; 
+                li.style.fontStyle = 'Italic'; //Le damos estilo
+                li.style.color = 'gray';
+                messages.appendChild(li);
+            }); 
+        
+
+
+        </script>
+
+
+    </body>
+</html>
